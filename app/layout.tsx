@@ -1,4 +1,5 @@
 import "./globals.css";
+import AssistantIA from "@/components/AssistantIA";
 
 export const metadata = {
   title: "Orientation Sénégal",
@@ -12,7 +13,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+        {children}
+        <AssistantIA />
+      </body>
     </html>
   );
 }

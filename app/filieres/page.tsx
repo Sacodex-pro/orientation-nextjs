@@ -1,7 +1,18 @@
 "use client"
-import { useState } from "react"
 
-const filieres = [
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useRouter } from "next/navigation"
+
+type Filiere = {
+  nom: string
+  categorie: string
+  series: string
+  niveau: string
+  debouches: string
+  salaire: string
+}
+
+const filieres: Filiere[] = [
   { nom: "Informatique", categorie: "Sciences et Ingenierie", series: "S1, S2", niveau: "Licence - Master - Doctorat (LMD)", debouches: "Developpeur, administrateur systemes, data analyst", salaire: "150 000 - 700 000 FCFA/mois" },
   { nom: "Mathematiques - Physique - Informatique (MPI)", categorie: "Sciences et Ingenierie", series: "S1, S2", niveau: "Licence - Master - Doctorat (LMD)", debouches: "Ingenieur, enseignant, chercheur, data scientist", salaire: "150 000 - 600 000 FCFA/mois" },
   { nom: "Mathematiques appliquees et informatique", categorie: "Sciences et Ingenierie", series: "S1, S2", niveau: "Licence - Master - Doctorat (LMD)", debouches: "Data scientist, actuaire, ingenieur logiciel", salaire: "200 000 - 700 000 FCFA/mois" },
@@ -55,64 +66,202 @@ const filieres = [
   { nom: "Sciences des activites physiques et sportives (STAPS)", categorie: "Enseignement", series: "S1, S2, L1, L2", niveau: "Licence - Master (LMD)", debouches: "Professeur d'EPS, entraineur sportif", salaire: "130 000 - 400 000 FCFA/mois" },
 ]
 
-const categories = ["Sciences et Ingenierie", "Sante", "Agriculture et Environnement", "Economie Gestion et Droit", "Lettres et Sciences humaines", "Arts et Communication", "Enseignement"]
+const categories = [
+  "Sciences et Ingenierie",
+  "Sante",
+  "Agriculture et Environnement",
+  "Economie Gestion et Droit",
+  "Lettres et Sciences humaines",
+  "Arts et Communication",
+  "Enseignement",
+]
 
-export default function Filieres() {
-  const [filtre, setFiltre] = useState("Toutes")
+const TOUTES = "Toutes"
 
-  const filtrees = filtre === "Toutes" ? filieres : filieres.filter(function (f) {
-    return f.categorie === filtre
-  })
+/* Fait apparaître son contenu en glissant vers le haut quand il entre à l'écran */
+function Reveal({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: ReactNode
+  delay?: number
+  className?: string
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <main className="min-h-screen bg-white">
-      <header className="sticky top-0 z-50 bg-white border-b px-8 py-4 flex justify-between items-center">
-        <a href="/" className="text-xl font-extrabold text-blue-900">Orientation Senegal</a>
-        <nav className="space-x-6 text-sm font-medium text-gray-700">
-          <a href="/filieres" className="hover:text-blue-900">Filieres</a>
-          <a href="/universites" className="hover:text-blue-900">Universites</a>
-          <a href="/conseils" className="hover:text-blue-900">Conseils</a>
-          <a href="/test" className="bg-blue-900 text-white px-5 py-2 rounded-full">test</a>
-        </nav>
+    <div
+      ref={ref}
+      style={{ transitionDelay: `${delay}ms` }}
+      className={
+        "transition-all duration-700 ease-out motion-reduce:transform-none motion-reduce:transition-none " +
+        (visible
+          ? "translate-y-0 opacity-100"
+          : "translate-y-6 opacity-0 motion-reduce:opacity-100") +
+        " " +
+        className
+      }
+    >
+      {children}
+    </div>
+  )
+}
+
+export default function Filieres() {
+  const router = useRouter()
+  const [filtre, setFiltre] = useState(TOUTES)
+
+  const filtrees = useMemo(
+    () =>
+      filtre === TOUTES
+        ? filieres
+        : filieres.filter((f) => f.categorie === filtre),
+    [filtre]
+  )
+
+  /* Retour à la page précédente, ou à l'accueil si aucun historique */
+  const retourner = () => {
+    if (window.history.length > 1) {
+      router.back()
+    } else {
+      router.push("/")
+    }
+  }
+
+  const styleBouton = (actif: boolean) =>
+    "shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm transition-all duration-300 active:scale-95 " +
+    (actif
+      ? "bg-blue-900 text-white shadow-md"
+      : "bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-900")
+
+  return (
+    <main className="min-h-screen overflow-x-hidden bg-white">
+      <style>{`
+        @keyframes headerDown {
+          from { opacity: 0; transform: translateY(-100%); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .header-anim { animation: headerDown 0.6s ease-out both; }
+        @media (prefers-reduced-motion: reduce) {
+          .header-anim { animation: none; }
+        }
+      `}</style>
+
+      <header className="header-anim sticky top-0 z-50 flex items-center justify-between gap-4 border-b bg-white/95 px-4 py-4 backdrop-blur sm:px-8">
+        <a
+          href="/"
+          className="text-lg font-extrabold text-blue-900 transition-transform duration-300 hover:scale-105 sm:text-xl"
+        >
+          Orientation Senegal
+        </a>
+
+        <button
+          type="button"
+          onClick={retourner}
+          className="group flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-900 transition-all duration-300 hover:border-blue-200 hover:bg-blue-100 active:scale-95"
+        >
+          <span
+            aria-hidden="true"
+            className="transition-transform duration-300 group-hover:-translate-x-1"
+          >
+            ←
+          </span>
+          Retour
+        </button>
       </header>
 
-      <section className="py-16 px-8 max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Toutes les filieres</h1>
-        <p className="text-gray-500 mb-8">Systeme LMD (Licence - Master - Doctorat)</p>
+      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-8 sm:py-16">
+        <Reveal>
+          <h1 className="mb-2 text-2xl font-bold sm:text-3xl">
+            Toutes les filieres
+          </h1>
+        </Reveal>
+        <Reveal delay={100}>
+          <p className="mb-6 text-gray-500 sm:mb-8">
+            Systeme LMD (Licence - Master - Doctorat)
+          </p>
+        </Reveal>
 
-        <div className="flex flex-wrap gap-2 mb-10">
-          <button
-            onClick={function () { setFiltre("Toutes") }}
-            className={filtre === "Toutes" ? "px-4 py-2 rounded-full text-sm bg-blue-900 text-white" : "px-4 py-2 rounded-full text-sm bg-gray-100 text-gray-700"}
-          >
-            Toutes
-          </button>
-          {categories.map(function (cat) {
-            const active = filtre === cat
-            const style = active ? "px-4 py-2 rounded-full text-sm bg-blue-900 text-white" : "px-4 py-2 rounded-full text-sm bg-gray-100 text-gray-700"
-            return (
-              <button key={cat} onClick={function () { setFiltre(cat) }} className={style}>
+        {/* Filtres : défilement horizontal sur téléphone, retour à la ligne sur grand écran */}
+        <Reveal delay={200} className="mb-8 sm:mb-10">
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              aria-pressed={filtre === TOUTES}
+              onClick={() => setFiltre(TOUTES)}
+              className={styleBouton(filtre === TOUTES)}
+            >
+              {TOUTES}
+            </button>
+
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                aria-pressed={filtre === cat}
+                onClick={() => setFiltre(cat)}
+                className={styleBouton(filtre === cat)}
+              >
                 {cat}
               </button>
-            )
-          })}
-        </div>
+            ))}
+          </div>
+        </Reveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtrees.map(function (f) {
-            return (
-              <div key={f.nom} className="border rounded-2xl p-6 flex flex-col">
-                <span className="text-xs bg-blue-100 text-blue-900 px-3 py-1 rounded-full self-start mb-3">
+        {/* La clé relance l'animation des cartes à chaque changement de filtre */}
+        <div
+          key={filtre}
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
+        >
+          {filtrees.map((f, index) => (
+            <Reveal
+              key={f.nom}
+              delay={(index % 3) * 100}
+              className="h-full"
+            >
+              <div className="group flex h-full flex-col rounded-2xl border bg-white p-4 transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl sm:p-6">
+                <span className="mb-3 self-start rounded-full bg-blue-100 px-3 py-1 text-xs text-blue-900 transition-transform duration-300 group-hover:scale-105">
                   {f.categorie}
                 </span>
-                <h3 className="font-bold text-lg mb-2">{f.nom}</h3>
-                <div className="text-sm text-gray-500 mb-2">Series: {f.series}</div>
-                <div className="text-sm text-gray-600 mb-2">Niveau: {f.niveau}</div>
-                <div className="text-sm text-gray-600 mb-3 flex-1">Debouches: {f.debouches}</div>
-                <div className="text-sm font-semibold text-blue-900 pt-3 border-t">{f.salaire}</div>
+
+                <h3 className="mb-2 text-base font-bold sm:text-lg">{f.nom}</h3>
+
+                <div className="mb-2 text-sm text-gray-500">
+                  Series: {f.series}
+                </div>
+                <div className="mb-2 text-sm text-gray-600">
+                  Niveau: {f.niveau}
+                </div>
+                <div className="mb-3 flex-1 text-sm text-gray-600">
+                  Debouches: {f.debouches}
+                </div>
+
+                <div className="border-t pt-3 text-sm font-semibold text-blue-900">
+                  {f.salaire}
+                </div>
               </div>
-            )
-          })}
+            </Reveal>
+          ))}
         </div>
       </section>
     </main>

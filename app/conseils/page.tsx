@@ -1,3 +1,7 @@
+"use client"
+
+import { useEffect, useRef, useState, type ReactNode } from "react"
+
 const conseils = [
   {
     emoji: "🧮",
@@ -26,50 +30,128 @@ const conseils = [
   },
 ]
 
+/* Fait apparaître son contenu en glissant vers le haut quand il entre à l'écran */
+function Reveal({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: ReactNode
+  delay?: number
+  className?: string
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.15 }
+    )
+
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div
+      ref={ref}
+      style={{ transitionDelay: `${delay}ms` }}
+      className={
+        "transition-all duration-700 ease-out motion-reduce:transform-none motion-reduce:transition-none " +
+        (visible
+          ? "translate-y-0 opacity-100"
+          : "translate-y-6 opacity-0 motion-reduce:opacity-100") +
+        " " +
+        className
+      }
+    >
+      {children}
+    </div>
+  )
+}
+
 export default function Conseils() {
   return (
-    <main className="min-h-screen bg-white">
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b px-8 py-4 flex justify-between items-center">
-        <a href="/" className="text-xl font-extrabold text-blue-900 tracking-tight">
+    <main className="min-h-screen overflow-x-hidden bg-white">
+      <style>{`
+        @keyframes headerDown {
+          from { opacity: 0; transform: translateY(-100%); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .header-anim { animation: headerDown 0.6s ease-out both; }
+        @media (prefers-reduced-motion: reduce) {
+          .header-anim { animation: none; }
+        }
+      `}</style>
+
+      <header className="header-anim sticky top-0 z-50 flex items-center justify-between border-b bg-white/95 px-4 py-4 backdrop-blur sm:px-8">
+        <a
+          href="/"
+          className="text-lg font-extrabold tracking-tight text-blue-900 transition-transform duration-300 hover:scale-105 sm:text-xl"
+        >
           Orientation<span className="text-blue-500">SN</span>
         </a>
-        <nav className="space-x-8 text-sm font-medium text-gray-700">
-          <a href="/filieres" className="hover:text-blue-900">Filières</a>
-          <a href="/universites" className="hover:text-blue-900">Universités</a>
-          <a href="/conseils" className="hover:text-blue-900">Conseils</a>
-        </nav>
       </header>
 
-      <section className="py-16 px-8 max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-3">Conseils d'orientation</h1>
-        <p className="text-gray-600 mb-10 leading-relaxed">
-          Le choix d'une filière ne dépend pas uniquement de vos notes. Vos compétences, vos centres
-          d'intérêt, votre motivation et votre projet professionnel sont tout aussi importants.
-          Les conseils ci-dessous sont donnés à titre indicatif.
-        </p>
+      <section className="mx-auto max-w-3xl px-4 py-10 sm:px-8 sm:py-16">
+        <Reveal>
+          <h1 className="mb-3 text-2xl font-bold sm:text-3xl">
+            Conseils d'orientation
+          </h1>
+        </Reveal>
 
-        <div className="space-y-6">
-          {conseils.map((c) => (
-            <div key={c.titre} className="border rounded-2xl p-6 hover:shadow-md transition">
-              <div className="flex items-start gap-4">
-                <div className="text-3xl">{c.emoji}</div>
-                <div>
-                  <h3 className="font-bold text-lg mb-2">{c.titre}</h3>
-                  <p className="text-gray-600 leading-relaxed">{c.texte}</p>
+        <Reveal delay={100}>
+          <p className="mb-8 leading-relaxed text-gray-600 sm:mb-10">
+            Le choix d'une filière ne dépend pas uniquement de vos notes. Vos compétences, vos centres
+            d'intérêt, votre motivation et votre projet professionnel sont tout aussi importants.
+            Les conseils ci-dessous sont donnés à titre indicatif.
+          </p>
+        </Reveal>
+
+        <div className="space-y-4 sm:space-y-6">
+          {conseils.map((c, index) => (
+            <Reveal key={c.titre} delay={index * 100}>
+              <div className="group rounded-2xl border p-4 transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg sm:p-6">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div
+                    className="shrink-0 text-2xl transition-transform duration-300 group-hover:rotate-6 group-hover:scale-125 sm:text-3xl"
+                    aria-hidden="true"
+                  >
+                    {c.emoji}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="mb-2 text-base font-bold sm:text-lg">
+                      {c.titre}
+                    </h3>
+                    <p className="text-sm leading-relaxed text-gray-600 sm:text-base">
+                      {c.texte}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
 
-        <div className="mt-10 bg-blue-50 border border-blue-100 rounded-2xl p-6">
-          <p className="font-bold text-blue-900 mb-1">Important</p>
-          <p className="text-gray-700 leading-relaxed">
-            Aucune filière n'est meilleure qu'une autre. La réussite dépend surtout de votre
-            motivation, de votre travail, de vos compétences et de votre persévérance. Choisissez
-            une formation qui correspond à votre profil et à vos ambitions.
-          </p>
-        </div>
+        <Reveal className="mt-8 sm:mt-10">
+          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 transition-shadow duration-300 hover:shadow-md sm:p-6">
+            <p className="mb-1 font-bold text-blue-900">Important</p>
+            <p className="text-sm leading-relaxed text-gray-700 sm:text-base">
+              Aucune filière n'est meilleure qu'une autre. La réussite dépend surtout de votre
+              motivation, de votre travail, de vos compétences et de votre persévérance. Choisissez
+              une formation qui correspond à votre profil et à vos ambitions.
+            </p>
+          </div>
+        </Reveal>
       </section>
     </main>
   )
